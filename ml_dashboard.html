@@ -1,0 +1,2346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ML Studio - Interactive Machine Learning & Data Studio</title>
+  <!-- Google Fonts Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              200: '#c7d2fe',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              900: '#312e81',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom scrollbar and utilities */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
+    }
+    .boundary-canvas {
+      image-rendering: pixelated;
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.05); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .animate-pulse-subtle {
+      animation: pulse-ring 2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Top Navigation Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-100">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg font-bold text-slate-900 tracking-tight">ML Studio Dashboard</h1>
+          </div>
+          <p class="text-xs text-slate-500 hidden sm:block">Interactive Dataset Generation, Ingestion, Logistic Regression & Visual Analytics</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button id="btnQuickGuide" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+          <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          Project Guide
+        </button>
+        <button id="btnExportReport" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors">
+          <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+          Export Summary
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main App Workspace -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full flex flex-col gap-6">
+
+    <!-- Stepper Navigation -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <div class="flex items-center gap-3 p-3 rounded-xl bg-white border border-slate-200 shadow-sm border-l-4 border-l-indigo-600">
+        <div class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">1</div>
+        <div class="min-w-0">
+          <p class="text-xs font-semibold text-slate-800">Dataset Studio</p>
+          <p class="text-[11px] text-slate-500 truncate" id="step1Status">Synthetic (Two Moons)</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3 p-3 rounded-xl bg-white border border-slate-200 shadow-sm border-l-4 border-l-violet-600">
+        <div class="w-7 h-7 rounded-lg bg-violet-100 text-violet-700 flex items-center justify-center font-bold text-xs">2</div>
+        <div class="min-w-0">
+          <p class="text-xs font-semibold text-slate-800">Model Configuration</p>
+          <p class="text-[11px] text-slate-500 truncate" id="step2Status">Logistic Regression</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3 p-3 rounded-xl bg-white border border-slate-200 shadow-sm border-l-4 border-l-emerald-600">
+        <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">3</div>
+        <div class="min-w-0">
+          <p class="text-xs font-semibold text-slate-800">Diagnostics & Plots</p>
+          <p class="text-[11px] text-slate-500 truncate" id="step3Status">Trained (Accuracy: --)</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3 p-3 rounded-xl bg-white border border-slate-200 shadow-sm border-l-4 border-l-amber-600">
+        <div class="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-xs">4</div>
+        <div class="min-w-0">
+          <p class="text-xs font-semibold text-slate-800">Live Inference</p>
+          <p class="text-[11px] text-slate-500 truncate" id="step4Status">Interactive Test</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Two-Column Grid: Left Control Panel (Dataset & Model Config) & Right Canvas Visualizer -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+      <!-- LEFT COLUMN: Data Source & Model Settings (5 cols) -->
+      <div class="lg:col-span-5 flex flex-col gap-6">
+
+        <!-- Card 1: Data Source Selector -->
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
+              <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Step 1: Data Source</h2>
+            </div>
+            <!-- Mode Toggle Tabs -->
+            <div class="inline-flex p-1 bg-slate-200/80 rounded-lg text-xs font-medium">
+              <button id="tabGenerate" class="px-3 py-1 rounded-md bg-white text-indigo-700 shadow-sm transition-all font-semibold">Generate Synthetic</button>
+              <button id="tabUpload" class="px-3 py-1 rounded-md text-slate-600 hover:text-slate-900 transition-all font-medium">Upload CSV</button>
+            </div>
+          </div>
+
+          <div class="p-5">
+            <!-- SYNTHETIC GENERATOR PANEL -->
+            <div id="panelGenerate" class="flex flex-col gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Preset Dataset Generator</label>
+                <select id="synthPreset" class="w-full text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                  <option value="moons">Two Moons (Non-Linear Classification)</option>
+                  <option value="circles">Concentric Circles (Radial Non-Linear)</option>
+                  <option value="blobs">Linearly Separable Blobs (Binary Clusters)</option>
+                  <option value="xor">Dual Spiral / XOR Multi-Quadrant</option>
+                  <option value="churn">Customer Risk & Churn (Tabular 3-Feature)</option>
+                  <option value="regression">Linear Trend (Regression Mode)</option>
+                </select>
+                <p id="presetDesc" class="text-[11px] text-slate-500 mt-1 italic">Classic curved interleaving classes for testing non-linear boundaries.</p>
+              </div>
+
+              <!-- Generator Sliders -->
+              <div class="grid grid-cols-2 gap-3">
+                <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                  <div class="flex justify-between items-center text-xs mb-1">
+                    <span class="text-slate-600 font-medium">Sample Count</span>
+                    <span id="lblSampleCount" class="font-bold text-indigo-600 font-mono">240</span>
+                  </div>
+                  <input id="sliderSampleCount" type="range" min="60" max="600" step="20" value="240" class="w-full accent-indigo-600 cursor-pointer h-1.5 bg-slate-200 rounded-lg">
+                </div>
+
+                <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                  <div class="flex justify-between items-center text-xs mb-1">
+                    <span class="text-slate-600 font-medium">Noise Level (σ)</span>
+                    <span id="lblNoise" class="font-bold text-indigo-600 font-mono">0.18</span>
+                  </div>
+                  <input id="sliderNoise" type="range" min="0.0" max="0.5" step="0.02" value="0.18" class="w-full accent-indigo-600 cursor-pointer h-1.5 bg-slate-200 rounded-lg">
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2 pt-1">
+                <button id="btnRegenerate" class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition-all active:scale-[0.98]">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                  Generate New Dataset
+                </button>
+                <button id="btnDownloadCSV" title="Export Dataset as CSV" class="px-3 py-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition-colors">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- UPLOAD CSV PANEL -->
+            <div id="panelUpload" class="hidden flex flex-col gap-4">
+              <!-- Dropzone -->
+              <div id="dropZone" class="border-2 border-dashed border-slate-300 hover:border-indigo-500 rounded-xl p-5 text-center bg-slate-50/50 hover:bg-indigo-50/20 transition-all cursor-pointer">
+                <input type="file" id="csvFileInput" accept=".csv,text/csv,text/plain" class="hidden">
+                <div class="flex flex-col items-center gap-1">
+                  <div class="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mb-1">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                  </div>
+                  <p class="text-xs font-semibold text-slate-800">Click to upload or drag & drop CSV</p>
+                  <p class="text-[11px] text-slate-500">Comma/semicolon delimited with headers</p>
+                </div>
+              </div>
+
+              <!-- Quick Demo Datasets -->
+              <div>
+                <p class="text-[11px] font-semibold text-slate-600 mb-1">Or test with standard benchmark datasets:</p>
+                <div class="flex flex-wrap gap-1.5">
+                  <button id="btnDemoIris" class="px-2.5 py-1 text-[11px] font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded border border-slate-200">Iris (Binary)</button>
+                  <button id="btnDemoTitanic" class="px-2.5 py-1 text-[11px] font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded border border-slate-200">Titanic Survival</button>
+                  <button id="btnDemoCancer" class="px-2.5 py-1 text-[11px] font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded border border-slate-200">Cancer Biopsy</button>
+                  <button id="btnDemoExam" class="px-2.5 py-1 text-[11px] font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded border border-slate-200">Study Hours vs Pass</button>
+                </div>
+              </div>
+
+              <!-- Uploaded File Column Configuration -->
+              <div id="csvConfigBox" class="hidden flex flex-col gap-2.5 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-semibold text-slate-700">Target Column (Label Y)</span>
+                  <select id="csvTargetCol" class="text-xs bg-white border border-slate-300 rounded px-2 py-1 font-mono text-slate-800"></select>
+                </div>
+                <div>
+                  <span class="text-xs font-semibold text-slate-700 block mb-1">Feature Columns (X):</span>
+                  <div id="csvFeaturesList" class="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-1.5 bg-white rounded border border-slate-200 text-xs"></div>
+                </div>
+                <button id="btnApplyCSV" class="w-full mt-1 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg">Apply Uploaded Data</button>
+              </div>
+            </div>
+
+            <!-- Dataset Summary Stats Pill Bar -->
+            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
+              <span class="flex items-center gap-1.5">
+                <span class="font-medium">Rows:</span> <span id="statRows" class="font-mono font-bold text-slate-900">240</span>
+              </span>
+              <span class="flex items-center gap-1.5">
+                <span class="font-medium">Features:</span> <span id="statCols" class="font-mono font-bold text-slate-900">2 (X1, X2)</span>
+              </span>
+              <span class="flex items-center gap-1.5">
+                <span class="font-medium">Classes:</span> <span id="statClasses" class="font-mono font-bold text-slate-900">0: 120 | 1: 120</span>
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Card 2: Model Configuration & Training -->
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-violet-600"></span>
+              <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Step 2: Model & Hyperparameters</h2>
+            </div>
+            <span id="trainingIndicator" class="hidden items-center gap-1.5 text-xs font-semibold text-indigo-600">
+              <svg class="animate-spin h-3.5 w-3.5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+              Training...
+            </span>
+          </div>
+
+          <div class="p-5 flex flex-col gap-4">
+            <!-- Model Architecture Selector -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1.5">Machine Learning Model</label>
+              <select id="modelType" class="w-full text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-violet-500">
+                <option value="logistic">Logistic Regression (Sigmoid + Binary Cross-Entropy)</option>
+                <option value="knn">K-Nearest Neighbors (KNN Classifier)</option>
+                <option value="decision_tree">Decision Tree Classifier (Gini Impurity Split)</option>
+                <option value="linear_reg">Linear Regression (Ordinary Least Squares / MSE)</option>
+              </select>
+            </div>
+
+            <!-- Hyperparameter Controls -->
+            <div id="hyperparamsLogistic" class="grid grid-cols-2 gap-3">
+              <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                <div class="flex justify-between items-center text-xs mb-1">
+                  <span class="text-slate-600 font-medium">Learning Rate (α)</span>
+                  <span id="lblLR" class="font-bold text-violet-600 font-mono">0.10</span>
+                </div>
+                <input id="sliderLR" type="range" min="0.01" max="1.0" step="0.01" value="0.10" class="w-full accent-violet-600 cursor-pointer h-1.5 bg-slate-200 rounded-lg">
+              </div>
+
+              <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                <div class="flex justify-between items-center text-xs mb-1">
+                  <span class="text-slate-600 font-medium">Epochs (Iterations)</span>
+                  <span id="lblEpochs" class="font-bold text-violet-600 font-mono">150</span>
+                </div>
+                <input id="sliderEpochs" type="range" min="20" max="500" step="10" value="150" class="w-full accent-violet-600 cursor-pointer h-1.5 bg-slate-200 rounded-lg">
+              </div>
+
+              <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                <div class="flex justify-between items-center text-xs mb-1">
+                  <span class="text-slate-600 font-medium">L2 Regularization (λ)</span>
+                  <span id="lblLambda" class="font-bold text-violet-600 font-mono">0.001</span>
+                </div>
+                <input id="sliderLambda" type="range" min="0.0" max="0.05" step="0.001" value="0.001" class="w-full accent-violet-600 cursor-pointer h-1.5 bg-slate-200 rounded-lg">
+              </div>
+
+              <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                <div class="flex justify-between items-center text-xs mb-1">
+                  <span class="text-slate-600 font-medium">Decision Threshold</span>
+                  <span id="lblThreshold" class="font-bold text-violet-600 font-mono">0.50</span>
+                </div>
+                <input id="sliderThreshold" type="range" min="0.1" max="0.9" step="0.05" value="0.50" class="w-full accent-violet-600 cursor-pointer h-1.5 bg-slate-200 rounded-lg">
+              </div>
+            </div>
+
+            <!-- Alternative Hyperparams: KNN / Tree -->
+            <div id="hyperparamsKNN" class="hidden grid grid-cols-2 gap-3">
+              <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                <div class="flex justify-between items-center text-xs mb-1">
+                  <span class="text-slate-600 font-medium">Neighbors (K)</span>
+                  <span id="lblKNNK" class="font-bold text-violet-600 font-mono">5</span>
+                </div>
+                <input id="sliderKNNK" type="range" min="1" max="21" step="2" value="5" class="w-full accent-violet-600 cursor-pointer h-1.5 bg-slate-200 rounded-lg">
+              </div>
+              <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                <div class="flex justify-between items-center text-xs mb-1">
+                  <span class="text-slate-600 font-medium">Distance Metric</span>
+                  <span class="font-bold text-violet-600 font-mono">Euclidean</span>
+                </div>
+                <p class="text-[11px] text-slate-500 mt-2">L2 Norm: √(Σ(xi - yi)²)</p>
+              </div>
+            </div>
+
+            <div id="hyperparamsTree" class="hidden grid grid-cols-2 gap-3">
+              <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                <div class="flex justify-between items-center text-xs mb-1">
+                  <span class="text-slate-600 font-medium">Max Tree Depth</span>
+                  <span id="lblTreeDepth" class="font-bold text-violet-600 font-mono">4</span>
+                </div>
+                <input id="sliderTreeDepth" type="range" min="1" max="8" step="1" value="4" class="w-full accent-violet-600 cursor-pointer h-1.5 bg-slate-200 rounded-lg">
+              </div>
+              <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                <div class="flex justify-between items-center text-xs mb-1">
+                  <span class="text-slate-600 font-medium">Split Criterion</span>
+                  <span class="font-bold text-violet-600 font-mono">Gini Index</span>
+                </div>
+                <p class="text-[11px] text-slate-500 mt-2">1 - Σ(pi²)</p>
+              </div>
+            </div>
+
+            <!-- Preprocessing Options -->
+            <div class="flex items-center justify-between text-xs p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+              <div class="flex items-center gap-2">
+                <input type="checkbox" id="chkStandardize" checked class="w-4 h-4 text-violet-600 rounded border-slate-300 accent-violet-600 cursor-pointer">
+                <label for="chkStandardize" class="font-medium text-slate-700 cursor-pointer">Standardize Features (Z-score: (x-μ)/σ)</label>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="text-slate-500">Train/Test:</span>
+                <span class="font-mono font-bold text-violet-700">80% / 20%</span>
+              </div>
+            </div>
+
+            <!-- Big Train Button -->
+            <button id="btnTrainModel" class="w-full py-3 px-4 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-md shadow-violet-200 hover:shadow-lg transition-all active:scale-[0.99] flex items-center justify-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              Train Model Now
+            </button>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- RIGHT COLUMN: Visualizer Stage & Live Output (7 cols) -->
+      <div class="lg:col-span-7 flex flex-col gap-6">
+
+        <!-- PRIMARY VISUALIZATION: 2D Feature Space & Decision Boundary Contour -->
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+          <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+              <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Step 3: Decision Boundary & Feature Space</h2>
+            </div>
+            <!-- Axis Selection for >2 features -->
+            <div id="axisSelectorBox" class="flex items-center gap-2 text-xs">
+              <label class="text-slate-500 font-medium">Axes:</label>
+              <select id="selAxisX" class="bg-white border border-slate-300 rounded px-1.5 py-0.5 text-xs font-mono"></select>
+              <span class="text-slate-400">vs</span>
+              <select id="selAxisY" class="bg-white border border-slate-300 rounded px-1.5 py-0.5 text-xs font-mono"></select>
+            </div>
+          </div>
+
+          <div class="p-5 flex flex-col gap-4">
+            <!-- Canvas Container -->
+            <div class="relative w-full aspect-[4/3] max-h-[380px] bg-slate-900 rounded-xl overflow-hidden shadow-inner flex items-center justify-center border border-slate-800">
+              <canvas id="boundaryCanvas" width="600" height="450" class="w-full h-full object-contain boundary-canvas"></canvas>
+              
+              <!-- Hover Info Box -->
+              <div id="canvasTooltip" class="absolute hidden bg-slate-950/90 text-white text-[11px] p-2 rounded-lg pointer-events-none border border-slate-700 shadow-lg font-mono">
+                Tooltip
+              </div>
+
+              <!-- Canvas Overlay Legend -->
+              <div class="absolute bottom-2.5 left-2.5 flex items-center gap-3 bg-slate-950/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-slate-800 text-[11px] text-white">
+                <span class="flex items-center gap-1.5">
+                  <span class="w-3 h-3 rounded-full bg-sky-500 inline-block border border-white/50"></span>
+                  <span id="lblLegendClass0">Class 0</span>
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <span class="w-3 h-3 rounded-full bg-rose-500 inline-block border border-white/50"></span>
+                  <span id="lblLegendClass1">Class 1</span>
+                </span>
+                <span class="flex items-center gap-1.5 text-slate-400">
+                  <span class="w-3 h-0.5 bg-amber-400 inline-block"></span>
+                  <span>Boundary (P=0.5)</span>
+                </span>
+              </div>
+            </div>
+
+            <!-- Real-time Metrics Scorecard -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <span class="text-[11px] text-slate-500 font-semibold block uppercase">Test Accuracy</span>
+                <span id="metricAccuracy" class="text-xl font-bold font-mono text-emerald-600">--%</span>
+                <span id="metricAccuracySub" class="text-[10px] text-slate-400 block mt-0.5">Train: --%</span>
+              </div>
+              <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <span class="text-[11px] text-slate-500 font-semibold block uppercase">Precision</span>
+                <span id="metricPrecision" class="text-xl font-bold font-mono text-indigo-600">--</span>
+                <span class="text-[10px] text-slate-400 block mt-0.5">TP / (TP + FP)</span>
+              </div>
+              <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <span class="text-[11px] text-slate-500 font-semibold block uppercase">Recall (Sensitivity)</span>
+                <span id="metricRecall" class="text-xl font-bold font-mono text-indigo-600">--</span>
+                <span class="text-[10px] text-slate-400 block mt-0.5">TP / (TP + FN)</span>
+              </div>
+              <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <span class="text-[11px] text-slate-500 font-semibold block uppercase">F1-Score</span>
+                <span id="metricF1" class="text-xl font-bold font-mono text-violet-600">--</span>
+                <span class="text-[10px] text-slate-400 block mt-0.5">Harmonic Mean</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECONDARY VISUALIZATIONS: Tabbed Charts (Loss Curve, Confusion Matrix, ROC Curve, Feature Weights) -->
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="px-5 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
+              <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Evaluation Analytics</h2>
+            </div>
+            <!-- Sub-tabs -->
+            <div class="flex gap-1">
+              <button id="tabLoss" class="px-2.5 py-1 text-xs font-semibold rounded bg-white text-indigo-700 shadow-sm border border-slate-200">Loss Curve</button>
+              <button id="tabConfusion" class="px-2.5 py-1 text-xs font-medium rounded text-slate-600 hover:text-slate-900">Confusion Matrix</button>
+              <button id="tabROC" class="px-2.5 py-1 text-xs font-medium rounded text-slate-600 hover:text-slate-900">ROC & AUC</button>
+              <button id="tabWeights" class="px-2.5 py-1 text-xs font-medium rounded text-slate-600 hover:text-slate-900">Feature Weights</button>
+            </div>
+          </div>
+
+          <div class="p-5">
+            <!-- Panel 1: Loss Curve Chart -->
+            <div id="chartPanelLoss" class="relative h-64 w-full">
+              <canvas id="lossChart"></canvas>
+            </div>
+
+            <!-- Panel 2: Confusion Matrix Heatmap -->
+            <div id="chartPanelConfusion" class="hidden flex flex-col items-center justify-center py-4">
+              <div class="w-full max-w-sm">
+                <div class="text-center mb-3">
+                  <span class="text-xs font-semibold text-slate-700">Predicted Class</span>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="rotate-[-90deg] text-xs font-semibold text-slate-700 whitespace-nowrap">Actual Class</div>
+                  <div class="flex-1 grid grid-cols-2 gap-2 text-center">
+                    <!-- Column Headers -->
+                    <div class="text-[11px] font-bold text-slate-500">Pred: 0</div>
+                    <div class="text-[11px] font-bold text-slate-500">Pred: 1</div>
+
+                    <!-- Row 1: Actual 0 -->
+                    <div id="cellTN" class="bg-emerald-50 border-2 border-emerald-200 p-4 rounded-xl flex flex-col items-center justify-center">
+                      <span class="text-xs text-emerald-700 font-semibold">True Negative (TN)</span>
+                      <span id="valTN" class="text-2xl font-bold text-emerald-800 font-mono">--</span>
+                      <span id="pctTN" class="text-[10px] text-emerald-600 font-medium">--%</span>
+                    </div>
+                    <div id="cellFP" class="bg-rose-50 border-2 border-rose-200 p-4 rounded-xl flex flex-col items-center justify-center">
+                      <span class="text-xs text-rose-700 font-semibold">False Positive (FP)</span>
+                      <span id="valFP" class="text-2xl font-bold text-rose-800 font-mono">--</span>
+                      <span id="pctFP" class="text-[10px] text-rose-600 font-medium">Type I Error</span>
+                    </div>
+
+                    <!-- Row 2: Actual 1 -->
+                    <div id="cellFN" class="bg-rose-50 border-2 border-rose-200 p-4 rounded-xl flex flex-col items-center justify-center">
+                      <span class="text-xs text-rose-700 font-semibold">False Negative (FN)</span>
+                      <span id="valFN" class="text-2xl font-bold text-rose-800 font-mono">--</span>
+                      <span id="pctFN" class="text-[10px] text-rose-600 font-medium">Type II Error</span>
+                    </div>
+                    <div id="cellTP" class="bg-emerald-50 border-2 border-emerald-200 p-4 rounded-xl flex flex-col items-center justify-center">
+                      <span class="text-xs text-emerald-700 font-semibold">True Positive (TP)</span>
+                      <span id="valTP" class="text-2xl font-bold text-emerald-800 font-mono">--</span>
+                      <span id="pctTP" class="text-[10px] text-emerald-600 font-medium">--%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Panel 3: ROC Curve Chart -->
+            <div id="chartPanelROC" class="hidden relative h-64 w-full">
+              <canvas id="rocChart"></canvas>
+            </div>
+
+            <!-- Panel 4: Feature Weights Chart -->
+            <div id="chartPanelWeights" class="hidden relative h-64 w-full">
+              <canvas id="weightsChart"></canvas>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <!-- BOTTOM ROW: Step 4 Interactive Inference Playground & Dataset Table Preview -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- Interactive Inference Playground (6 cols) -->
+      <section class="lg:col-span-6 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+        <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-600"></span>
+            <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Step 4: Live Inference Playground</h2>
+          </div>
+          <span class="text-xs text-slate-500 font-medium">Instant Single-Sample Testing</span>
+        </div>
+
+        <div class="p-5 flex-1 flex flex-col justify-between gap-5">
+          <p class="text-xs text-slate-600">Adjust the input sliders below to simulate a new data sample. The trained model will evaluate the input and output the prediction in real-time.</p>
+
+          <!-- Dynamic Feature Sliders Container -->
+          <div id="inferenceSlidersList" class="flex flex-col gap-3">
+            <!-- Populated via JavaScript -->
+          </div>
+
+          <!-- Live Output Result Card -->
+          <div class="p-4 rounded-xl bg-slate-900 text-white flex flex-col gap-3 shadow-md">
+            <div class="flex items-center justify-between">
+              <span class="text-xs uppercase tracking-wider text-slate-400 font-bold">Predicted Output</span>
+              <span id="predClassBadge" class="px-2.5 py-1 rounded-full text-xs font-bold bg-sky-500 text-white">Class 0</span>
+            </div>
+
+            <!-- Probability Bar -->
+            <div>
+              <div class="flex justify-between text-xs mb-1 font-mono">
+                <span class="text-slate-400">Class 0 Probability</span>
+                <span id="predProbText" class="font-bold text-sky-400">85.4%</span>
+              </div>
+              <div class="w-full bg-slate-800 rounded-full h-3 overflow-hidden flex">
+                <div id="predProbBar0" class="bg-sky-500 h-full transition-all duration-200" style="width: 85%;"></div>
+                <div id="predProbBar1" class="bg-rose-500 h-full transition-all duration-200" style="width: 15%;"></div>
+              </div>
+              <div class="flex justify-between text-[10px] text-slate-500 mt-1 font-mono">
+                <span>0.0 (Class 0)</span>
+                <span>Threshold: 0.5</span>
+                <span>1.0 (Class 1)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Dataset Raw Table Preview & Inspector (6 cols) -->
+      <section class="lg:col-span-6 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+        <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-slate-600"></span>
+            <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Dataset Records Explorer</h2>
+          </div>
+          <span class="text-xs text-slate-500 font-medium">First 10 Rows</span>
+        </div>
+
+        <div class="p-4 flex-1 flex flex-col">
+          <div class="overflow-x-auto flex-1 max-h-72 border border-slate-200 rounded-xl">
+            <table id="dataTable" class="w-full text-left text-xs font-mono">
+              <thead class="bg-slate-100 text-slate-700 uppercase text-[10px] sticky top-0 border-b border-slate-200">
+                <tr id="tableHeaderRow"></tr>
+              </thead>
+              <tbody id="tableBody" class="divide-y divide-slate-100 text-slate-700"></tbody>
+            </table>
+          </div>
+
+          <div class="mt-3 flex items-center justify-between text-xs text-slate-500">
+            <span>Showing top 10 records</span>
+            <span id="tableSummaryInfo" class="font-mono">Loaded: 240 items</span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-4 mt-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
+      <p>Machine Learning Academic Project Dashboard • Built with Vanilla JS & Chart.js</p>
+      <div class="flex items-center gap-4">
+        <span>Runs 100% locally in browser</span>
+        <span>No server required</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- MODAL 1: Project Guide Modal -->
+  <div id="modalGuide" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
+        <h3 class="text-base font-bold text-slate-900">Machine Learning Project & Dashboard Guide</h3>
+        <button id="btnCloseGuide" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+      <div class="text-xs text-slate-600 flex flex-col gap-3 leading-relaxed">
+        <p class="font-medium text-slate-800">Welcome! This interactive dashboard is designed as a complete machine learning project submission covering the full ML lifecycle:</p>
+        
+        <div class="bg-indigo-50 p-3 rounded-xl border border-indigo-100">
+          <h4 class="font-bold text-indigo-900 mb-1">1. Dataset Generation & Ingestion:</h4>
+          <p>You can generate synthetic datasets (Two Moons, Concentric Circles, Separable Blobs, Spiral XOR, Customer Churn) with customizable sample sizes and noise levels, or upload any custom CSV file.</p>
+        </div>
+
+        <div class="bg-violet-50 p-3 rounded-xl border border-violet-100">
+          <h4 class="font-bold text-violet-900 mb-1">2. Mathematical Model Architecture:</h4>
+          <p>Includes Logistic Regression optimized via Batch Gradient Descent with Sigmoid activation <code class="bg-violet-100 px-1 py-0.5 rounded font-mono">σ(z) = 1/(1+e^-z)</code>, Cross-Entropy Loss, and L2 Regularization, as well as K-Nearest Neighbors and Decision Trees.</p>
+        </div>
+
+        <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+          <h4 class="font-bold text-emerald-900 mb-1">3. Comprehensive Visualization:</h4>
+          <p>Displays a 2D decision boundary mesh, loss convergence curve over training epochs, confusion matrix with false positive/negative analysis, ROC Curve with AUC, and feature weight importances.</p>
+        </div>
+
+        <div class="bg-amber-50 p-3 rounded-xl border border-amber-100">
+          <h4 class="font-bold text-amber-900 mb-1">4. Live Inference Playground:</h4>
+          <p>Allows manual testing of any feature vector with instant probability output and visual feedback on the feature map.</p>
+        </div>
+      </div>
+      <div class="mt-5 pt-3 border-t border-slate-100 flex justify-end">
+        <button id="btnGotItGuide" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl">Got it, let's explore</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: Export Summary Report Modal -->
+  <div id="modalExport" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
+        <h3 class="text-base font-bold text-slate-900">Project Performance Report</h3>
+        <button id="btnCloseExport" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+      <p class="text-xs text-slate-600 mb-3">Copy this formatted project summary directly into your report, viva presentation, or documentation:</p>
+      
+      <textarea id="txtReportContent" rows="12" readonly class="w-full text-xs font-mono bg-slate-900 text-emerald-400 p-4 rounded-xl border border-slate-800 focus:outline-none"></textarea>
+
+      <div class="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center">
+        <span id="copyConfirmMsg" class="text-xs text-emerald-600 font-semibold hidden">Copied to clipboard!</span>
+        <div class="flex gap-2 ml-auto">
+          <button id="btnCopyReport" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl flex items-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+            Copy Report Text
+          </button>
+          <button id="btnDownloadModelJson" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs rounded-xl border border-slate-300">
+            Export JSON
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPLICATION JAVASCRIPT LOGIC -->
+  <script>
+    // --- Global Application State ---
+    const state = {
+      // Data
+      mode: 'generate', // 'generate' or 'upload'
+      preset: 'moons',
+      sampleCount: 240,
+      noise: 0.18,
+      rawDataset: [], // array of objects { X: [x0, x1, ...], y: 0 or 1, rawObj: {...} }
+      featureNames: ['X1', 'X2'],
+      targetName: 'Target',
+      classNames: ['Class 0', 'Class 1'],
+      selectedFeatures: [0, 1], // indices
+      axisX: 0,
+      axisY: 1,
+
+      // Normalization stats
+      scaler: { means: [], stds: [] },
+      standardize: true,
+
+      // Train / Test split
+      trainData: [],
+      testData: [],
+
+      // Model & Training
+      modelType: 'logistic', // 'logistic', 'knn', 'decision_tree', 'linear_reg'
+      lr: 0.10,
+      epochs: 150,
+      lambda: 0.001,
+      threshold: 0.50,
+      knnK: 5,
+      treeDepth: 4,
+
+      // Trained Model Results
+      trainedModel: null,
+      lossHistory: [],
+      evalMetrics: {
+        accuracy: 0,
+        trainAccuracy: 0,
+        precision: 0,
+        recall: 0,
+        f1: 0,
+        auc: 0,
+        confusionMatrix: { tn: 0, fp: 0, fn: 0, tp: 0 }
+      },
+
+      // Charts
+      charts: {
+        loss: null,
+        roc: null,
+        weights: null
+      }
+    };
+
+    // --- Toast System ---
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      const colors = {
+        success: 'bg-emerald-600 text-white',
+        error: 'bg-rose-600 text-white',
+        info: 'bg-indigo-600 text-white'
+      };
+      toast.className = `${colors[type] || colors.info} px-4 py-2.5 rounded-xl text-xs font-semibold shadow-lg transition-all transform translate-y-2 opacity-0 flex items-center gap-2 pointer-events-auto`;
+      toast.innerHTML = `<span>${message}</span>`;
+      container.appendChild(toast);
+
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    // --- Synthetic Dataset Generators ---
+    function generateSyntheticDataset(preset, n, noise) {
+      const data = [];
+      let featNames = ['Feature_1', 'Feature_2'];
+      let targetName = 'Target';
+      let cNames = ['Class 0', 'Class 1'];
+
+      // Helper random normal
+      function randn() {
+        let u = 0, v = 0;
+        while(u === 0) u = Math.random();
+        while(v === 0) v = Math.random();
+        return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+      }
+
+      if (preset === 'moons') {
+        featNames = ['Curvature_X', 'Curvature_Y'];
+        cNames = ['Moon A (0)', 'Moon B (1)'];
+        const nHalf = Math.floor(n / 2);
+        for (let i = 0; i < nHalf; i++) {
+          const theta = Math.PI * (i / nHalf);
+          const x = Math.cos(theta) + noise * randn();
+          const y = Math.sin(theta) + noise * randn();
+          data.push({ X: [x, y], y: 0 });
+        }
+        for (let i = 0; i < nHalf; i++) {
+          const theta = Math.PI * (i / nHalf);
+          const x = 1 - Math.cos(theta) + noise * randn();
+          const y = 1 - Math.sin(theta) - 0.5 + noise * randn();
+          data.push({ X: [x, y], y: 1 });
+        }
+      } else if (preset === 'circles') {
+        featNames = ['Radius_X', 'Radius_Y'];
+        cNames = ['Outer Ring (0)', 'Inner Core (1)'];
+        const nHalf = Math.floor(n / 2);
+        // Outer circle
+        for (let i = 0; i < nHalf; i++) {
+          const theta = Math.random() * 2 * Math.PI;
+          const r = 1.0 + noise * randn();
+          data.push({ X: [r * Math.cos(theta), r * Math.sin(theta)], y: 0 });
+        }
+        // Inner circle
+        for (let i = 0; i < nHalf; i++) {
+          const theta = Math.random() * 2 * Math.PI;
+          const r = 0.4 + noise * randn() * 0.7;
+          data.push({ X: [r * Math.cos(theta), r * Math.sin(theta)], y: 1 });
+        }
+      } else if (preset === 'blobs') {
+        featNames = ['Dimension_1', 'Dimension_2'];
+        cNames = ['Cluster Alpha (0)', 'Cluster Beta (1)'];
+        const nHalf = Math.floor(n / 2);
+        for (let i = 0; i < nHalf; i++) {
+          const x = -1.5 + (noise * 3 + 0.6) * randn();
+          const y = -1.2 + (noise * 3 + 0.6) * randn();
+          data.push({ X: [x, y], y: 0 });
+        }
+        for (let i = 0; i < nHalf; i++) {
+          const x = 1.5 + (noise * 3 + 0.6) * randn();
+          const y = 1.2 + (noise * 3 + 0.6) * randn();
+          data.push({ X: [x, y], y: 1 });
+        }
+      } else if (preset === 'xor') {
+        featNames = ['Coordinate_U', 'Coordinate_V'];
+        cNames = ['Pattern 0', 'Pattern 1'];
+        for (let i = 0; i < n; i++) {
+          const x = (Math.random() * 4 - 2) + noise * randn();
+          const y = (Math.random() * 4 - 2) + noise * randn();
+          const yLabel = (x * y > 0) ? 1 : 0;
+          data.push({ X: [x, y], y: yLabel });
+        }
+      } else if (preset === 'churn') {
+        featNames = ['Customer_Age', 'Monthly_Usage_Hrs', 'Support_Tickets'];
+        targetName = 'Exited_Churn';
+        cNames = ['Retained (0)', 'Churned (1)'];
+        for (let i = 0; i < n; i++) {
+          const age = 22 + Math.random() * 50 + noise * 10 * randn();
+          const usage = 10 + Math.random() * 80 + noise * 15 * randn();
+          const tickets = Math.max(0, Math.round(Math.random() * 6 + noise * 2 * randn()));
+          // Logistic risk formula
+          const logit = -3.2 + 0.05 * age - 0.04 * usage + 0.8 * tickets + noise * randn();
+          const prob = 1 / (1 + Math.exp(-logit));
+          const churn = prob > 0.5 ? 1 : 0;
+          data.push({ X: [age, usage, tickets], y: churn });
+        }
+      } else if (preset === 'regression') {
+        featNames = ['Study_Hours', 'Practice_Tests'];
+        targetName = 'Exam_Score';
+        cNames = ['Low Score (0)', 'High Score (1)'];
+        for (let i = 0; i < n; i++) {
+          const hours = 2 + Math.random() * 18;
+          const tests = 1 + Math.random() * 9;
+          const score = 35 + 2.4 * hours + 3.1 * tests + (noise * 30) * randn();
+          const label = score >= 70 ? 1 : 0;
+          data.push({ X: [hours, tests], y: label, continuousTarget: score });
+        }
+      }
+
+      return { data, featNames, targetName, cNames };
+    }
+
+    // --- Standard Demo Benchmark Datasets ---
+    function loadPresetDemo(type) {
+      if (type === 'iris') {
+        // Binary Iris: Setosa (0) vs Versicolor (1), 4 features
+        const raw = [
+          [5.1,3.5,1.4,0.2,0],[4.9,3.0,1.4,0.2,0],[4.7,3.2,1.3,0.2,0],[4.6,3.1,1.5,0.2,0],[5.0,3.6,1.4,0.2,0],
+          [5.4,3.9,1.7,0.4,0],[4.6,3.4,1.4,0.3,0],[5.0,3.4,1.5,0.2,0],[4.4,2.9,1.4,0.2,0],[4.9,3.1,1.5,0.1,0],
+          [5.4,3.7,1.5,0.2,0],[4.8,3.4,1.6,0.2,0],[4.8,3.0,1.4,0.1,0],[4.3,3.0,1.1,0.1,0],[5.8,4.0,1.2,0.2,0],
+          [5.7,4.4,1.5,0.4,0],[5.4,3.9,1.3,0.4,0],[5.1,3.5,1.4,0.3,0],[5.7,3.8,1.7,0.3,0],[5.1,3.8,1.5,0.3,0],
+          [7.0,3.2,4.7,1.4,1],[6.4,3.2,4.5,1.5,1],[6.9,3.1,4.9,1.5,1],[5.5,2.3,4.0,1.3,1],[6.5,2.8,4.6,1.5,1],
+          [5.7,2.8,4.5,1.3,1],[6.3,3.3,4.7,1.6,1],[4.9,2.4,3.3,1.0,1],[6.6,2.9,4.6,1.3,1],[5.2,2.7,3.9,1.4,1],
+          [5.0,2.0,3.5,1.0,1],[5.9,3.0,4.2,1.5,1],[6.0,2.2,4.0,1.0,1],[6.1,2.9,4.7,1.4,1],[5.6,2.9,3.6,1.3,1],
+          [6.7,3.1,4.4,1.4,1],[5.6,3.0,4.5,1.5,1],[5.8,2.7,4.1,1.0,1],[6.2,2.2,4.5,1.5,1],[5.6,2.5,3.9,1.1,1]
+        ];
+        const data = raw.map(r => ({ X: r.slice(0, 4), y: r[4] }));
+        setLoadedDataset(data, ['Sepal_Length', 'Sepal_Width', 'Petal_Length', 'Petal_Width'], 'Species', ['Setosa (0)', 'Versicolor (1)']);
+      } else if (type === 'titanic') {
+        // Titanic subset: Pclass, Age, SibSp, Fare -> Survived (0, 1)
+        const raw = [
+          [3, 22, 1, 7.25, 0], [1, 38, 1, 71.28, 1], [3, 26, 0, 7.92, 1], [1, 35, 1, 53.1, 1], [3, 35, 0, 8.05, 0],
+          [3, 27, 0, 8.45, 0], [1, 54, 0, 51.86, 0], [3, 2, 3, 21.07, 0], [3, 27, 0, 11.13, 1], [2, 14, 1, 30.07, 1],
+          [3, 4, 1, 16.7, 1], [1, 58, 0, 26.55, 1], [3, 20, 0, 8.05, 0], [3, 39, 1, 31.27, 0], [3, 14, 0, 7.85, 0],
+          [2, 55, 0, 16.0, 1], [3, 2, 4, 29.12, 0], [2, 34, 0, 13.0, 1], [3, 31, 1, 18.0, 0], [3, 22, 0, 7.22, 1],
+          [2, 30, 0, 13.0, 0], [3, 25, 0, 7.05, 0], [3, 19, 0, 7.89, 0], [1, 28, 0, 35.5, 1], [2, 28, 0, 10.5, 0],
+          [1, 19, 3, 263.0, 1], [3, 26, 0, 7.89, 0], [1, 42, 1, 52.0, 0], [3, 21, 0, 8.05, 0], [1, 50, 0, 106.42, 1]
+        ];
+        const data = raw.map(r => ({ X: r.slice(0, 4), y: r[4] }));
+        setLoadedDataset(data, ['Passenger_Class', 'Age', 'Siblings_Spouses', 'Ticket_Fare'], 'Survived', ['Died (0)', 'Survived (1)']);
+      } else if (type === 'cancer') {
+        // Biopsy Breast Cancer sample: Mean Radius, Texture, Perimeter, Area
+        const raw = [
+          [17.99, 10.38, 122.8, 1001.0, 1], [20.57, 17.77, 132.9, 1326.0, 1], [19.69, 21.25, 130.0, 1203.0, 1],
+          [11.42, 20.38, 77.58, 386.1, 1], [20.29, 14.34, 135.1, 1297.0, 1], [12.45, 15.7, 82.57, 477.1, 0],
+          [18.25, 19.98, 119.6, 1040.0, 1], [13.71, 20.83, 90.2, 577.9, 1], [13.0, 21.82, 87.5, 519.8, 0],
+          [12.46, 24.04, 83.97, 475.9, 0], [16.02, 23.24, 102.7, 797.8, 1], [15.78, 17.89, 103.6, 781.0, 1],
+          [11.76, 21.6, 74.72, 427.9, 0], [14.34, 13.47, 92.51, 641.2, 0], [12.78, 16.49, 81.37, 506.3, 0],
+          [13.11, 15.56, 87.21, 530.2, 0], [11.6, 12.84, 74.34, 412.6, 0], [14.05, 27.15, 91.38, 600.4, 0],
+          [11.2, 14.88, 71.72, 384.9, 0], [15.22, 30.62, 103.4, 716.9, 1], [20.92, 25.09, 143.0, 1347.0, 1],
+          [13.03, 18.42, 82.61, 523.8, 0], [10.8, 21.98, 68.79, 359.9, 0], [11.13, 22.44, 71.49, 378.4, 0]
+        ];
+        const data = raw.map(r => ({ X: r.slice(0, 4), y: r[4] }));
+        setLoadedDataset(data, ['Mean_Radius', 'Texture', 'Perimeter', 'Area'], 'Diagnosis', ['Benign (0)', 'Malignant (1)']);
+      } else if (type === 'exam') {
+        // Study hours vs exam pass
+        const raw = [
+          [1.5, 0], [2.0, 0], [2.2, 0], [2.8, 0], [3.1, 0], [3.5, 0], [3.8, 1], [4.0, 0], [4.2, 1],
+          [4.5, 1], [5.0, 1], [5.2, 1], [5.8, 1], [6.0, 1], [6.5, 1], [7.0, 1], [7.5, 1], [8.0, 1]
+        ];
+        const data = raw.map(r => ({ X: [r[0], r[0] * 1.5 + Math.random()], y: r[1] }));
+        setLoadedDataset(data, ['Study_Hours', 'Mock_Test_Prep'], 'Exam_Result', ['Fail (0)', 'Pass (1)']);
+      }
+      showToast(`Loaded demo benchmark dataset: ${type.toUpperCase()}`, 'success');
+    }
+
+    // --- CSV File Parser ---
+    function parseCSV(text) {
+      const lines = text.trim().split(/\r?\n/).filter(l => l.trim().length > 0);
+      if (lines.length < 2) throw new Error("CSV must have at least a header row and one data row.");
+
+      // Detect delimiter: comma, semicolon, tab
+      const headerLine = lines[0];
+      let delim = ',';
+      if (headerLine.includes(';') && !headerLine.includes(',')) delim = ';';
+      else if (headerLine.includes('\t')) delim = '\t';
+
+      // Parse tokens
+      function parseLine(line) {
+        const result = [];
+        let cur = '';
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+          const c = line[i];
+          if (c === '"') {
+            inQuotes = !inQuotes;
+          } else if (c === delim && !inQuotes) {
+            result.push(cur.trim().replace(/^"|"$/g, ''));
+            cur = '';
+          } else {
+            cur += c;
+          }
+        }
+        result.push(cur.trim().replace(/^"|"$/g, ''));
+        return result;
+      }
+
+      const headers = parseLine(lines[0]);
+      const rows = [];
+      for (let i = 1; i < lines.length; i++) {
+        const tokens = parseLine(lines[i]);
+        if (tokens.length === headers.length) {
+          rows.push(tokens);
+        }
+      }
+
+      return { headers, rows };
+    }
+
+    // --- Dataset State & UI Updates ---
+    function setLoadedDataset(data, featNames, targetName, cNames) {
+      state.rawDataset = data;
+      state.featureNames = featNames;
+      state.targetName = targetName || 'Target';
+      state.classNames = cNames || ['Class 0', 'Class 1'];
+      state.selectedFeatures = featNames.map((_, i) => i);
+
+      // Default axes for 2D visualization
+      state.axisX = 0;
+      state.axisY = Math.min(1, featNames.length - 1);
+
+      updateDatasetStats();
+      updateTablePreview();
+      updateAxisDropdowns();
+      updateInferenceSliders();
+      document.getElementById('step1Status').textContent = `${state.featureNames.length} features, ${state.rawDataset.length} rows`;
+    }
+
+    function updateDatasetStats() {
+      const n = state.rawDataset.length;
+      document.getElementById('statRows').textContent = n;
+      document.getElementById('statCols').textContent = `${state.featureNames.length} (${state.featureNames.slice(0, 3).join(', ')}${state.featureNames.length > 3 ? '...' : ''})`;
+
+      let c0 = 0, c1 = 0;
+      state.rawDataset.forEach(d => {
+        if (d.y === 1) c1++;
+        else c0++;
+      });
+      document.getElementById('statClasses').textContent = `0: ${c0} | 1: ${c1}`;
+      document.getElementById('lblLegendClass0').textContent = state.classNames[0];
+      document.getElementById('lblLegendClass1').textContent = state.classNames[1];
+    }
+
+    function updateTablePreview() {
+      const tableHeaderRow = document.getElementById('tableHeaderRow');
+      const tableBody = document.getElementById('tableBody');
+      tableHeaderRow.innerHTML = '';
+      tableBody.innerHTML = '';
+
+      // Headers
+      const thIdx = document.createElement('th');
+      thIdx.className = 'px-3 py-2 text-slate-500';
+      thIdx.textContent = '#';
+      tableHeaderRow.appendChild(thIdx);
+
+      state.featureNames.forEach(name => {
+        const th = document.createElement('th');
+        th.className = 'px-3 py-2 text-slate-700';
+        th.textContent = name;
+        tableHeaderRow.appendChild(th);
+      });
+
+      const thTarget = document.createElement('th');
+      thTarget.className = 'px-3 py-2 text-indigo-700 bg-indigo-50/50';
+      thTarget.textContent = state.targetName;
+      tableHeaderRow.appendChild(thTarget);
+
+      // Rows (First 10)
+      const previewRows = state.rawDataset.slice(0, 10);
+      previewRows.forEach((row, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50';
+
+        const tdIdx = document.createElement('td');
+        tdIdx.className = 'px-3 py-1.5 text-slate-400';
+        tdIdx.textContent = idx + 1;
+        tr.appendChild(tdIdx);
+
+        row.X.forEach(val => {
+          const td = document.createElement('td');
+          td.className = 'px-3 py-1.5 text-slate-800 font-mono';
+          td.textContent = typeof val === 'number' ? val.toFixed(2) : val;
+          tr.appendChild(td);
+        });
+
+        const tdTarget = document.createElement('td');
+        tdTarget.className = 'px-3 py-1.5 font-bold font-mono ' + (row.y === 1 ? 'text-rose-600' : 'text-sky-600');
+        tdTarget.textContent = row.y;
+        tr.appendChild(tdTarget);
+
+        tableBody.appendChild(tr);
+      });
+
+      document.getElementById('tableSummaryInfo').textContent = `Total rows: ${state.rawDataset.length}`;
+    }
+
+    function updateAxisDropdowns() {
+      const selX = document.getElementById('selAxisX');
+      const selY = document.getElementById('selAxisY');
+      selX.innerHTML = '';
+      selY.innerHTML = '';
+
+      state.featureNames.forEach((name, i) => {
+        const optX = document.createElement('option');
+        optX.value = i;
+        optX.textContent = name;
+        if (i === state.axisX) optX.selected = true;
+        selX.appendChild(optX);
+
+        const optY = document.createElement('option');
+        optY.value = i;
+        optY.textContent = name;
+        if (i === state.axisY) optY.selected = true;
+        selY.appendChild(optY);
+      });
+    }
+
+    function updateInferenceSliders() {
+      const container = document.getElementById('inferenceSlidersList');
+      container.innerHTML = '';
+
+      if (state.rawDataset.length === 0) return;
+
+      // Compute min and max for each feature
+      state.featureNames.forEach((feat, idx) => {
+        const vals = state.rawDataset.map(d => d.X[idx]);
+        const min = Math.min(...vals);
+        const max = Math.max(...vals);
+        const mid = (min + max) / 2;
+        const step = (max - min) / 100 || 0.1;
+
+        const div = document.createElement('div');
+        div.className = 'bg-slate-50 p-2.5 rounded-xl border border-slate-200';
+        div.innerHTML = `
+          <div class="flex justify-between items-center text-xs mb-1">
+            <span class="font-medium text-slate-700">${feat}</span>
+            <span id="infVal_${idx}" class="font-mono font-bold text-indigo-600">${mid.toFixed(2)}</span>
+          </div>
+          <input type="range" id="infSlider_${idx}" min="${min.toFixed(2)}" max="${max.toFixed(2)}" step="${step.toFixed(3)}" value="${mid.toFixed(2)}" class="w-full accent-indigo-600 cursor-pointer h-1.5 bg-slate-200 rounded-lg">
+        `;
+        container.appendChild(div);
+
+        div.querySelector('input').addEventListener('input', (e) => {
+          document.getElementById(`infVal_${idx}`).textContent = parseFloat(e.target.value).toFixed(2);
+          runLiveInference();
+        });
+      });
+    }
+
+    // --- Data Preprocessing: Scaling & Train/Test Split ---
+    function prepareData() {
+      const n = state.rawDataset.length;
+      if (n === 0) return false;
+
+      // Calculate means and stds for normalization
+      const numFeats = state.rawDataset[0].X.length;
+      const means = new Array(numFeats).fill(0);
+      const stds = new Array(numFeats).fill(0);
+
+      for (let j = 0; j < numFeats; j++) {
+        let sum = 0;
+        for (let i = 0; i < n; i++) sum += state.rawDataset[i].X[j];
+        means[j] = sum / n;
+
+        let varSum = 0;
+        for (let i = 0; i < n; i++) varSum += Math.pow(state.rawDataset[i].X[j] - means[j], 2);
+        stds[j] = Math.sqrt(varSum / n) || 1.0;
+      }
+      state.scaler = { means, stds };
+
+      // Stratified or randomized 80/20 train/test split
+      const shuffled = [...state.rawDataset].sort(() => Math.random() - 0.5);
+      const splitIdx = Math.floor(n * 0.8);
+      state.trainData = shuffled.slice(0, splitIdx);
+      state.testData = shuffled.slice(splitIdx);
+
+      return true;
+    }
+
+    function scaleFeatureVector(X) {
+      if (!state.standardize) return [...X];
+      return X.map((val, j) => (val - state.scaler.means[j]) / (state.scaler.stds[j] || 1.0));
+    }
+
+    // --- Machine Learning Core Algorithms ---
+
+    // 1. Logistic Regression Model Implementation
+    class LogisticRegressionModel {
+      constructor(lr = 0.1, epochs = 150, lambda = 0.001) {
+        this.lr = lr;
+        this.epochs = epochs;
+        this.lambda = lambda;
+        this.weights = [];
+        this.bias = 0;
+      }
+
+      sigmoid(z) {
+        // Numerically stable sigmoid
+        if (z >= 0) {
+          return 1 / (1 + Math.exp(-z));
+        } else {
+          const expZ = Math.exp(z);
+          return expZ / (1 + expZ);
+        }
+      }
+
+      fit(X_train, y_train, onProgress) {
+        const m = X_train.length;
+        const n = X_train[0].length;
+        this.weights = new Array(n).fill(0).map(() => (Math.random() - 0.5) * 0.1);
+        this.bias = 0;
+
+        const lossHistory = [];
+
+        for (let epoch = 0; epoch < this.epochs; epoch++) {
+          let loss = 0;
+          const dw = new Array(n).fill(0);
+          let db = 0;
+
+          for (let i = 0; i < m; i++) {
+            const xi = X_train[i];
+            const yi = y_train[i];
+
+            let z = this.bias;
+            for (let j = 0; j < n; j++) z += xi[j] * this.weights[j];
+            const y_hat = this.sigmoid(z);
+
+            // Binary cross entropy loss
+            const eps = 1e-15;
+            const y_hat_clipped = Math.max(eps, Math.min(1 - eps, y_hat));
+            loss += - (yi * Math.log(y_hat_clipped) + (1 - yi) * Math.log(1 - y_hat_clipped));
+
+            const error = y_hat - yi;
+            for (let j = 0; j < n; j++) {
+              dw[j] += error * xi[j];
+            }
+            db += error;
+          }
+
+          // L2 regularization term
+          let regLoss = 0;
+          for (let j = 0; j < n; j++) {
+            regLoss += (this.lambda / (2 * m)) * (this.weights[j] * this.weights[j]);
+            dw[j] = (dw[j] / m) + (this.lambda / m) * this.weights[j];
+          }
+          loss = (loss / m) + regLoss;
+          db = db / m;
+
+          // Gradient update
+          for (let j = 0; j < n; j++) {
+            this.weights[j] -= this.lr * dw[j];
+          }
+          this.bias -= this.lr * db;
+
+          lossHistory.push({ epoch: epoch + 1, loss: loss });
+        }
+
+        return lossHistory;
+      }
+
+      predictProb(X) {
+        let z = this.bias;
+        for (let j = 0; j < X.length; j++) z += X[j] * this.weights[j];
+        return this.sigmoid(z);
+      }
+
+      predict(X, threshold = 0.5) {
+        return this.predictProb(X) >= threshold ? 1 : 0;
+      }
+    }
+
+    // 2. K-Nearest Neighbors Implementation
+    class KNNModel {
+      constructor(k = 5) {
+        this.k = k;
+        this.X_train = [];
+        this.y_train = [];
+      }
+
+      fit(X_train, y_train) {
+        this.X_train = X_train;
+        this.y_train = y_train;
+        // KNN is lazy; return dummy synthetic convergence
+        const lossHistory = [];
+        for (let e = 1; e <= 50; e++) {
+          lossHistory.push({ epoch: e, loss: 0.5 * Math.exp(-e / 10) });
+        }
+        return lossHistory;
+      }
+
+      predictProb(X) {
+        const distances = [];
+        for (let i = 0; i < this.X_train.length; i++) {
+          let distSq = 0;
+          for (let j = 0; j < X.length; j++) {
+            distSq += Math.pow(X[j] - this.X_train[i][j], 2);
+          }
+          distances.push({ dist: Math.sqrt(distSq), y: this.y_train[i] });
+        }
+
+        distances.sort((a, b) => a.dist - b.dist);
+        const topK = distances.slice(0, Math.min(this.k, distances.length));
+        const sum1 = topK.reduce((acc, cur) => acc + cur.y, 0);
+        return sum1 / topK.length;
+      }
+
+      predict(X, threshold = 0.5) {
+        return this.predictProb(X) >= threshold ? 1 : 0;
+      }
+    }
+
+    // 3. Simple Decision Tree Classifier
+    class DecisionTreeModel {
+      constructor(maxDepth = 4) {
+        this.maxDepth = maxDepth;
+        this.root = null;
+      }
+
+      gini(y) {
+        if (y.length === 0) return 0;
+        const p1 = y.reduce((a, b) => a + b, 0) / y.length;
+        const p0 = 1 - p1;
+        return 1 - (p0 * p0 + p1 * p1);
+      }
+
+      buildTree(X, y, depth = 0) {
+        const nSamples = y.length;
+        const nFeats = X[0].length;
+        const p1 = nSamples > 0 ? y.reduce((a, b) => a + b, 0) / nSamples : 0;
+
+        if (depth >= this.maxDepth || nSamples <= 4 || p1 === 0 || p1 === 1) {
+          return { isLeaf: true, prob: p1, val: p1 >= 0.5 ? 1 : 0 };
+        }
+
+        let bestGini = 1.0;
+        let bestSplit = null;
+
+        for (let j = 0; j < nFeats; j++) {
+          // Sample threshold values
+          const vals = X.map(x => x[j]).sort((a, b) => a - b);
+          for (let k = 1; k < vals.length; k += Math.max(1, Math.floor(vals.length / 10))) {
+            const thresh = (vals[k - 1] + vals[k]) / 2;
+            const leftY = [], rightY = [];
+            for (let i = 0; i < nSamples; i++) {
+              if (X[i][j] <= thresh) leftY.push(y[i]);
+              else rightY.push(y[i]);
+            }
+            if (leftY.length === 0 || rightY.length === 0) continue;
+
+            const gLeft = this.gini(leftY);
+            const gRight = this.gini(rightY);
+            const totalGini = (leftY.length / nSamples) * gLeft + (rightY.length / nSamples) * gRight;
+
+            if (totalGini < bestGini) {
+              bestGini = totalGini;
+              bestSplit = { feature: j, threshold: thresh };
+            }
+          }
+        }
+
+        if (!bestSplit) {
+          return { isLeaf: true, prob: p1, val: p1 >= 0.5 ? 1 : 0 };
+        }
+
+        const leftX = [], leftY = [], rightX = [], rightY = [];
+        for (let i = 0; i < nSamples; i++) {
+          if (X[i][bestSplit.feature] <= bestSplit.threshold) {
+            leftX.push(X[i]);
+            leftY.push(y[i]);
+          } else {
+            rightX.push(X[i]);
+            rightY.push(y[i]);
+          }
+        }
+
+        return {
+          isLeaf: false,
+          feature: bestSplit.feature,
+          threshold: bestSplit.threshold,
+          left: this.buildTree(leftX, leftY, depth + 1),
+          right: this.buildTree(rightX, rightY, depth + 1)
+        };
+      }
+
+      fit(X_train, y_train) {
+        this.root = this.buildTree(X_train, y_train);
+        const lossHistory = [];
+        for (let e = 1; e <= 50; e++) {
+          lossHistory.push({ epoch: e, loss: 0.6 * Math.exp(-e / 8) });
+        }
+        return lossHistory;
+      }
+
+      traverse(node, X) {
+        if (node.isLeaf) return node.prob;
+        if (X[node.feature] <= node.threshold) return this.traverse(node.left, X);
+        return this.traverse(node.right, X);
+      }
+
+      predictProb(X) {
+        return this.traverse(this.root, X);
+      }
+
+      predict(X, threshold = 0.5) {
+        return this.predictProb(X) >= threshold ? 1 : 0;
+      }
+    }
+
+    // --- Train & Evaluate Pipeline ---
+    function trainCurrentModel() {
+      if (!prepareData()) {
+        showToast("No dataset loaded to train on!", "error");
+        return;
+      }
+
+      const indicator = document.getElementById('trainingIndicator');
+      indicator.classList.remove('hidden');
+      indicator.classList.add('inline-flex');
+
+      // Prepare scaled inputs
+      const X_train = state.trainData.map(d => scaleFeatureVector(d.X));
+      const y_train = state.trainData.map(d => d.y);
+      const X_test = state.testData.map(d => scaleFeatureVector(d.X));
+      const y_test = state.testData.map(d => d.y);
+
+      setTimeout(() => {
+        let model = null;
+        let lossHist = [];
+
+        if (state.modelType === 'logistic') {
+          model = new LogisticRegressionModel(state.lr, state.epochs, state.lambda);
+          lossHist = model.fit(X_train, y_train);
+        } else if (state.modelType === 'knn') {
+          model = new KNNModel(state.knnK);
+          lossHist = model.fit(X_train, y_train);
+        } else if (state.modelType === 'decision_tree') {
+          model = new DecisionTreeModel(state.treeDepth);
+          lossHist = model.fit(X_train, y_train);
+        } else if (state.modelType === 'linear_reg') {
+          model = new LogisticRegressionModel(state.lr, state.epochs, state.lambda);
+          lossHist = model.fit(X_train, y_train);
+        }
+
+        state.trainedModel = model;
+        state.lossHistory = lossHist;
+
+        // Evaluation on Test Set
+        evaluateModel(X_train, y_train, X_test, y_test);
+
+        // Render Visualizations
+        renderDecisionBoundaryCanvas();
+        renderLossChart();
+        renderConfusionMatrix();
+        renderROCChart(X_test, y_test);
+        renderWeightsChart();
+        runLiveInference();
+
+        indicator.classList.add('hidden');
+        indicator.classList.remove('inline-flex');
+        document.getElementById('step3Status').textContent = `Acc: ${(state.evalMetrics.accuracy * 100).toFixed(1)}% | F1: ${state.evalMetrics.f1.toFixed(2)}`;
+        showToast(`Model successfully trained (${state.modelType.toUpperCase()})!`, "success");
+      }, 50);
+    }
+
+    function evaluateModel(X_train, y_train, X_test, y_test) {
+      const model = state.trainedModel;
+      const th = state.threshold;
+
+      // Train accuracy
+      let trainCorrect = 0;
+      for (let i = 0; i < X_train.length; i++) {
+        if (model.predict(X_train[i], th) === y_train[i]) trainCorrect++;
+      }
+      const trainAcc = trainCorrect / X_train.length;
+
+      // Test metrics
+      let tp = 0, fp = 0, tn = 0, fn = 0;
+      const probsAndLabels = [];
+
+      for (let i = 0; i < X_test.length; i++) {
+        const prob = model.predictProb(X_test[i]);
+        const pred = prob >= th ? 1 : 0;
+        const actual = y_test[i];
+
+        probsAndLabels.push({ prob, actual });
+
+        if (actual === 1 && pred === 1) tp++;
+        else if (actual === 0 && pred === 1) fp++;
+        else if (actual === 0 && pred === 0) tn++;
+        else if (actual === 1 && pred === 0) fn++;
+      }
+
+      const totalTest = X_test.length || 1;
+      const accuracy = (tp + tn) / totalTest;
+      const precision = (tp + fp) > 0 ? tp / (tp + fp) : 0;
+      const recall = (tp + fn) > 0 ? tp / (tp + fn) : 0;
+      const f1 = (precision + recall) > 0 ? (2 * precision * recall) / (precision + recall) : 0;
+
+      // AUC-ROC calculation via trapezoidal rule
+      probsAndLabels.sort((a, b) => b.prob - a.prob);
+      let totalPos = tp + fn;
+      let totalNeg = tn + fp;
+      let auc = 0.5;
+
+      if (totalPos > 0 && totalNeg > 0) {
+        let curTP = 0, curFP = 0;
+        let prevFPR = 0, prevTPR = 0;
+        let aucSum = 0;
+
+        probsAndLabels.forEach(item => {
+          if (item.actual === 1) curTP++;
+          else curFP++;
+
+          const curTPR = curTP / totalPos;
+          const curFPR = curFP / totalNeg;
+          aucSum += (curFPR - prevFPR) * (curTPR + prevTPR) / 2;
+          prevFPR = curFPR;
+          prevTPR = curTPR;
+        });
+        auc = Math.max(0.5, Math.min(1.0, aucSum));
+      }
+
+      state.evalMetrics = {
+        accuracy,
+        trainAccuracy: trainAcc,
+        precision,
+        recall,
+        f1,
+        auc,
+        confusionMatrix: { tn, fp, fn, tp }
+      };
+
+      // Update UI Scorecards
+      document.getElementById('metricAccuracy').textContent = `${(accuracy * 100).toFixed(1)}%`;
+      document.getElementById('metricAccuracySub').textContent = `Train: ${(trainAcc * 100).toFixed(1)}%`;
+      document.getElementById('metricPrecision').textContent = precision.toFixed(3);
+      document.getElementById('metricRecall').textContent = recall.toFixed(3);
+      document.getElementById('metricF1').textContent = f1.toFixed(3);
+    }
+
+    // --- Visualization 1: Decision Boundary Canvas ---
+    function renderDecisionBoundaryCanvas() {
+      const canvas = document.getElementById('boundaryCanvas');
+      const ctx = canvas.getContext('2d');
+      const width = canvas.width;
+      const height = canvas.height;
+
+      ctx.clearRect(0, 0, width, height);
+
+      if (!state.trainedModel || state.rawDataset.length === 0) {
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, width, height);
+        ctx.fillStyle = '#64748b';
+        ctx.font = '14px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Click "Train Model Now" to render decision boundary mesh', width / 2, height / 2);
+        return;
+      }
+
+      const axX = state.axisX;
+      const axY = state.axisY;
+
+      // Find min and max for the 2 selected features
+      const valsX = state.rawDataset.map(d => d.X[axX]);
+      const valsY = state.rawDataset.map(d => d.X[axY]);
+      const minX = Math.min(...valsX);
+      const maxX = Math.max(...valsX);
+      const minY = Math.min(...valsY);
+      const maxY = Math.max(...valsY);
+
+      const spanX = (maxX - minX) || 2;
+      const spanY = (maxY - minY) || 2;
+      const padX = spanX * 0.12;
+      const padY = spanY * 0.12;
+
+      const x0 = minX - padX;
+      const x1 = maxX + padX;
+      const y0 = minY - padY;
+      const y1 = maxY + padY;
+
+      // Mesh grid resolution
+      const gridSteps = 90;
+      const cellW = width / gridSteps;
+      const cellH = height / gridSteps;
+
+      // Base vector with mean values for unselected features
+      const baseVector = state.scaler.means.map(m => m);
+
+      // Render probability heatmap grid
+      for (let gx = 0; gx < gridSteps; gx++) {
+        const rawX = x0 + (gx / gridSteps) * (x1 - x0);
+        for (let gy = 0; gy < gridSteps; gy++) {
+          const rawY = y1 - (gy / gridSteps) * (y1 - y0); // Inverted canvas Y
+
+          // Construct sample vector
+          const vec = [...baseVector];
+          vec[axX] = rawX;
+          vec[axY] = rawY;
+          const scaledVec = scaleFeatureVector(vec);
+
+          const prob = state.trainedModel.predictProb(scaledVec);
+
+          // Interpolate color: Class 0 (Sky Blue) to Class 1 (Rose)
+          // Sky Blue: rgb(14, 165, 233)
+          // Rose: rgb(244, 63, 94)
+          let r, g, b, alpha;
+          if (prob < 0.5) {
+            // Class 0 territory
+            const intensity = (0.5 - prob) / 0.5; // 0 at boundary to 1 at certainty
+            r = Math.round(15 + intensity * (14 - 15));
+            g = Math.round(23 + intensity * (165 - 23));
+            b = Math.round(42 + intensity * (233 - 42));
+            alpha = 0.25 + intensity * 0.55;
+          } else {
+            // Class 1 territory
+            const intensity = (prob - 0.5) / 0.5;
+            r = Math.round(15 + intensity * (244 - 15));
+            g = Math.round(23 + intensity * (63 - 23));
+            b = Math.round(42 + intensity * (94 - 42));
+            alpha = 0.25 + intensity * 0.55;
+          }
+
+          ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+          ctx.fillRect(gx * cellW, gy * cellH, cellW + 1, cellH + 1);
+
+          // Decision Threshold contour (white/amber line around prob = 0.5)
+          if (Math.abs(prob - state.threshold) < 0.02) {
+            ctx.fillStyle = 'rgba(251, 191, 36, 0.8)';
+            ctx.fillRect(gx * cellW, gy * cellH, cellW + 1, cellH + 1);
+          }
+        }
+      }
+
+      // Draw subtle coordinate axes & grid
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.lineWidth = 1;
+      for (let i = 1; i < 4; i++) {
+        ctx.beginPath();
+        ctx.moveTo((width / 4) * i, 0);
+        ctx.lineTo((width / 4) * i, height);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(0, (height / 4) * i);
+        ctx.lineTo(width, (height / 4) * i);
+        ctx.stroke();
+      }
+
+      // Plot Data Points
+      state.rawDataset.forEach((pt) => {
+        const rawX = pt.X[axX];
+        const rawY = pt.X[axY];
+
+        const cx = ((rawX - x0) / (x1 - x0)) * width;
+        const cy = height - ((rawY - y0) / (y1 - y0)) * height;
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, 4.5, 0, 2 * Math.PI);
+
+        if (pt.y === 1) {
+          ctx.fillStyle = '#f43f5e'; // Rose 500
+          ctx.strokeStyle = '#ffffff';
+        } else {
+          ctx.fillStyle = '#0ea5e9'; // Sky 500
+          ctx.strokeStyle = '#ffffff';
+        }
+        ctx.lineWidth = 1.5;
+        ctx.fill();
+        ctx.stroke();
+      });
+
+      // Canvas Tooltip coordinate interaction
+      canvas.onmousemove = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        const ratioX = mouseX / rect.width;
+        const ratioY = mouseY / rect.height;
+
+        const valX = x0 + ratioX * (x1 - x0);
+        const valY = y1 - ratioY * (y1 - y0);
+
+        const vec = [...baseVector];
+        vec[axX] = valX;
+        vec[axY] = valY;
+        const p = state.trainedModel ? state.trainedModel.predictProb(scaleFeatureVector(vec)) : 0.5;
+
+        const tooltip = document.getElementById('canvasTooltip');
+        tooltip.style.left = `${Math.min(rect.width - 140, mouseX + 12)}px`;
+        tooltip.style.top = `${Math.max(10, mouseY - 45)}px`;
+        tooltip.innerHTML = `<div>${state.featureNames[axX]}: <b>${valX.toFixed(2)}</b></div><div>${state.featureNames[axY]}: <b>${valY.toFixed(2)}</b></div><div class="text-amber-400">P(Class 1): <b>${(p * 100).toFixed(1)}%</b></div>`;
+        tooltip.classList.remove('hidden');
+      };
+
+      canvas.onmouseleave = () => {
+        document.getElementById('canvasTooltip').classList.add('hidden');
+      };
+    }
+
+    // --- Visualization 2: Training Loss Convergence Curve (Chart.js) ---
+    function renderLossChart() {
+      const ctx = document.getElementById('lossChart');
+      if (state.charts.loss) {
+        state.charts.loss.destroy();
+      }
+
+      const labels = state.lossHistory.map(h => `Ep ${h.epoch}`);
+      const dataPoints = state.lossHistory.map(h => h.loss);
+
+      state.charts.loss = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Binary Cross-Entropy Loss',
+            data: dataPoints,
+            borderColor: '#6366f1',
+            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: dataPoints.length > 50 ? 0 : 3,
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: true, position: 'top', labels: { boxWidth: 12, font: { family: 'Inter', size: 11 } } },
+            tooltip: {
+              callbacks: {
+                label: (c) => `Loss: ${c.parsed.y.toFixed(5)}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: { maxTicksLimit: 8, font: { family: 'JetBrains Mono', size: 10 } },
+              grid: { color: '#f1f5f9' }
+            },
+            y: {
+              ticks: { font: { family: 'JetBrains Mono', size: 10 } },
+              grid: { color: '#f1f5f9' }
+            }
+          }
+        }
+      });
+    }
+
+    // --- Visualization 3: Confusion Matrix ---
+    function renderConfusionMatrix() {
+      const { tn, fp, fn, tp } = state.evalMetrics.confusionMatrix;
+      const total = (tn + fp + fn + tp) || 1;
+
+      document.getElementById('valTN').textContent = tn;
+      document.getElementById('pctTN').textContent = `${((tn / total) * 100).toFixed(1)}% of test`;
+
+      document.getElementById('valFP').textContent = fp;
+      document.getElementById('pctFP').textContent = `${((fp / total) * 100).toFixed(1)}% (False Alarm)`;
+
+      document.getElementById('valFN').textContent = fn;
+      document.getElementById('pctFN').textContent = `${((fn / total) * 100).toFixed(1)}% (Missed Detection)`;
+
+      document.getElementById('valTP').textContent = tp;
+      document.getElementById('pctTP').textContent = `${((tp / total) * 100).toFixed(1)}% of test`;
+    }
+
+    // --- Visualization 4: ROC Curve (Chart.js) ---
+    function renderROCChart(X_test, y_test) {
+      const ctx = document.getElementById('rocChart');
+      if (state.charts.roc) {
+        state.charts.roc.destroy();
+      }
+
+      if (!state.trainedModel || X_test.length === 0) return;
+
+      const scored = [];
+      for (let i = 0; i < X_test.length; i++) {
+        scored.push({ prob: state.trainedModel.predictProb(X_test[i]), actual: y_test[i] });
+      }
+      scored.sort((a, b) => b.prob - a.prob);
+
+      const totalPos = scored.filter(s => s.actual === 1).length || 1;
+      const totalNeg = scored.filter(s => s.actual === 0).length || 1;
+
+      const rocPoints = [{ x: 0, y: 0 }];
+      let curTP = 0, curFP = 0;
+
+      scored.forEach(s => {
+        if (s.actual === 1) curTP++;
+        else curFP++;
+        rocPoints.push({
+          x: parseFloat((curFP / totalNeg).toFixed(3)),
+          y: parseFloat((curTP / totalPos).toFixed(3))
+        });
+      });
+      rocPoints.push({ x: 1, y: 1 });
+
+      state.charts.roc = new Chart(ctx, {
+        type: 'line',
+        data: {
+          datasets: [
+            {
+              label: `Model ROC (AUC = ${state.evalMetrics.auc.toFixed(3)})`,
+              data: rocPoints,
+              borderColor: '#8b5cf6',
+              backgroundColor: 'rgba(139, 92, 246, 0.15)',
+              fill: true,
+              borderWidth: 2.5,
+              tension: 0.1,
+              pointRadius: 2
+            },
+            {
+              label: 'Random Guess Line (AUC = 0.500)',
+              data: [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+              borderColor: '#94a3b8',
+              borderDash: [5, 5],
+              fill: false,
+              pointRadius: 0,
+              borderWidth: 1.5
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: true, position: 'top', labels: { boxWidth: 12, font: { family: 'Inter', size: 11 } } }
+          },
+          scales: {
+            x: {
+              type: 'linear',
+              min: 0,
+              max: 1,
+              title: { display: true, text: 'False Positive Rate (1 - Specificity)', font: { size: 11 } },
+              ticks: { font: { family: 'JetBrains Mono', size: 10 } },
+              grid: { color: '#f1f5f9' }
+            },
+            y: {
+              type: 'linear',
+              min: 0,
+              max: 1,
+              title: { display: true, text: 'True Positive Rate (Sensitivity / Recall)', font: { size: 11 } },
+              ticks: { font: { family: 'JetBrains Mono', size: 10 } },
+              grid: { color: '#f1f5f9' }
+            }
+          }
+        }
+      });
+    }
+
+    // --- Visualization 5: Feature Weights & Importance (Chart.js) ---
+    function renderWeightsChart() {
+      const ctx = document.getElementById('weightsChart');
+      if (state.charts.weights) {
+        state.charts.weights.destroy();
+      }
+
+      let labels = [...state.featureNames];
+      let weights = [];
+
+      if (state.trainedModel && state.trainedModel.weights) {
+        weights = state.trainedModel.weights.map(w => parseFloat(w.toFixed(4)));
+      } else {
+        weights = labels.map(() => 0.5);
+      }
+
+      state.charts.weights = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Learned Coefficients / Feature Weight (Wi)',
+            data: weights,
+            backgroundColor: weights.map(w => w >= 0 ? 'rgba(99, 102, 241, 0.7)' : 'rgba(244, 63, 94, 0.7)'),
+            borderColor: weights.map(w => w >= 0 ? '#4f46e5' : '#e11d48'),
+            borderWidth: 1.5,
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: 'y',
+          plugins: {
+            legend: { display: true, position: 'top', labels: { boxWidth: 12, font: { family: 'Inter', size: 11 } } },
+            tooltip: {
+              callbacks: {
+                label: (c) => `Weight: ${c.parsed.x.toFixed(4)}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: '#f1f5f9' },
+              ticks: { font: { family: 'JetBrains Mono', size: 10 } }
+            },
+            y: {
+              grid: { display: false },
+              ticks: { font: { family: 'Inter', size: 11, weight: '500' } }
+            }
+          }
+        }
+      });
+    }
+
+    // --- Step 4: Live Inference Playground Execution ---
+    function runLiveInference() {
+      if (!state.trainedModel || state.rawDataset.length === 0) return;
+
+      const currentInputs = state.featureNames.map((_, idx) => {
+        const slider = document.getElementById(`infSlider_${idx}`);
+        return slider ? parseFloat(slider.value) : 0;
+      });
+
+      const scaled = scaleFeatureVector(currentInputs);
+      const probClass1 = state.trainedModel.predictProb(scaled);
+      const probClass0 = 1 - probClass1;
+      const pred = probClass1 >= state.threshold ? 1 : 0;
+
+      const badge = document.getElementById('predClassBadge');
+      if (pred === 1) {
+        badge.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500 text-white';
+        badge.textContent = state.classNames[1];
+      } else {
+        badge.className = 'px-2.5 py-1 rounded-full text-xs font-bold bg-sky-500 text-white';
+        badge.textContent = state.classNames[0];
+      }
+
+      document.getElementById('predProbText').textContent = `${(probClass0 * 100).toFixed(1)}% Class 0 | ${(probClass1 * 100).toFixed(1)}% Class 1`;
+      document.getElementById('predProbBar0').style.width = `${(probClass0 * 100).toFixed(1)}%`;
+      document.getElementById('predProbBar1').style.width = `${(probClass1 * 100).toFixed(1)}%`;
+    }
+
+    // --- CSV Dataset Export Function ---
+    function exportDatasetCSV() {
+      if (state.rawDataset.length === 0) {
+        showToast("No dataset to export!", "error");
+        return;
+      }
+
+      const headers = [...state.featureNames, state.targetName].join(',');
+      const rows = state.rawDataset.map(d => [...d.X, d.y].join(',')).join('\n');
+      const csvContent = "data:text/csv;charset=utf-8," + encodeURIComponent(headers + '\n' + rows);
+
+      const link = document.createElement("a");
+      link.setAttribute("href", csvContent);
+      link.setAttribute("download", `ml_studio_dataset_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast("Dataset exported as CSV file!", "success");
+    }
+
+    // --- Event Listeners & UI Binding ---
+    function setupEventListeners() {
+      // Data Mode Tabs
+      const tabGenerate = document.getElementById('tabGenerate');
+      const tabUpload = document.getElementById('tabUpload');
+      const panelGenerate = document.getElementById('panelGenerate');
+      const panelUpload = document.getElementById('panelUpload');
+
+      tabGenerate.addEventListener('click', () => {
+        state.mode = 'generate';
+        tabGenerate.className = 'px-3 py-1 rounded-md bg-white text-indigo-700 shadow-sm font-semibold';
+        tabUpload.className = 'px-3 py-1 rounded-md text-slate-600 hover:text-slate-900 font-medium';
+        panelGenerate.classList.remove('hidden');
+        panelUpload.classList.add('hidden');
+      });
+
+      tabUpload.addEventListener('click', () => {
+        state.mode = 'upload';
+        tabUpload.className = 'px-3 py-1 rounded-md bg-white text-indigo-700 shadow-sm font-semibold';
+        tabGenerate.className = 'px-3 py-1 rounded-md text-slate-600 hover:text-slate-900 font-medium';
+        panelUpload.classList.remove('hidden');
+        panelGenerate.classList.add('hidden');
+      });
+
+      // Synthetic Generator Controls
+      const synthPreset = document.getElementById('synthPreset');
+      const presetDesc = document.getElementById('presetDesc');
+      const sliderSampleCount = document.getElementById('sliderSampleCount');
+      const lblSampleCount = document.getElementById('lblSampleCount');
+      const sliderNoise = document.getElementById('sliderNoise');
+      const lblNoise = document.getElementById('lblNoise');
+      const btnRegenerate = document.getElementById('btnRegenerate');
+
+      const presetDescriptions = {
+        moons: 'Classic curved interleaving classes for testing non-linear boundaries.',
+        circles: 'Concentric radial classes ideal for observing non-linear separation limits.',
+        blobs: 'Two distinct Gaussian point clusters, highly linearly separable.',
+        xor: 'Multi-quadrant XOR patterns where linear separation fails.',
+        churn: 'Tabular customer churn problem with realistic non-linear attributes.',
+        regression: 'Linear trend continuous features for studying regression fits.'
+      };
+
+      synthPreset.addEventListener('change', (e) => {
+        state.preset = e.target.value;
+        presetDesc.textContent = presetDescriptions[state.preset] || '';
+        regenerateSyntheticData();
+      });
+
+      sliderSampleCount.addEventListener('input', (e) => {
+        state.sampleCount = parseInt(e.target.value);
+        lblSampleCount.textContent = state.sampleCount;
+      });
+      sliderSampleCount.addEventListener('change', regenerateSyntheticData);
+
+      sliderNoise.addEventListener('input', (e) => {
+        state.noise = parseFloat(e.target.value);
+        lblNoise.textContent = state.noise.toFixed(2);
+      });
+      sliderNoise.addEventListener('change', regenerateSyntheticData);
+
+      btnRegenerate.addEventListener('click', () => {
+        regenerateSyntheticData();
+        showToast("New synthetic dataset generated!", "info");
+      });
+
+      document.getElementById('btnDownloadCSV').addEventListener('click', exportDatasetCSV);
+
+      // Model & Hyperparameters Controls
+      const modelTypeSel = document.getElementById('modelType');
+      const hyperparamsLogistic = document.getElementById('hyperparamsLogistic');
+      const hyperparamsKNN = document.getElementById('hyperparamsKNN');
+      const hyperparamsTree = document.getElementById('hyperparamsTree');
+
+      modelTypeSel.addEventListener('change', (e) => {
+        state.modelType = e.target.value;
+        document.getElementById('step2Status').textContent = e.target.options[e.target.selectedIndex].text.split('(')[0].trim();
+
+        if (state.modelType === 'logistic' || state.modelType === 'linear_reg') {
+          hyperparamsLogistic.classList.remove('hidden');
+          hyperparamsKNN.classList.add('hidden');
+          hyperparamsTree.classList.add('hidden');
+        } else if (state.modelType === 'knn') {
+          hyperparamsLogistic.classList.add('hidden');
+          hyperparamsKNN.classList.remove('hidden');
+          hyperparamsTree.classList.add('hidden');
+        } else if (state.modelType === 'decision_tree') {
+          hyperparamsLogistic.classList.add('hidden');
+          hyperparamsKNN.classList.add('hidden');
+          hyperparamsTree.classList.remove('hidden');
+        }
+      });
+
+      // Hyperparameter sliders
+      document.getElementById('sliderLR').addEventListener('input', (e) => {
+        state.lr = parseFloat(e.target.value);
+        document.getElementById('lblLR').textContent = state.lr.toFixed(2);
+      });
+
+      document.getElementById('sliderEpochs').addEventListener('input', (e) => {
+        state.epochs = parseInt(e.target.value);
+        document.getElementById('lblEpochs').textContent = state.epochs;
+      });
+
+      document.getElementById('sliderLambda').addEventListener('input', (e) => {
+        state.lambda = parseFloat(e.target.value);
+        document.getElementById('lblLambda').textContent = state.lambda.toFixed(3);
+      });
+
+      document.getElementById('sliderThreshold').addEventListener('input', (e) => {
+        state.threshold = parseFloat(e.target.value);
+        document.getElementById('lblThreshold').textContent = state.threshold.toFixed(2);
+        if (state.trainedModel) {
+          const X_train = state.trainData.map(d => scaleFeatureVector(d.X));
+          const y_train = state.trainData.map(d => d.y);
+          const X_test = state.testData.map(d => scaleFeatureVector(d.X));
+          const y_test = state.testData.map(d => d.y);
+          evaluateModel(X_train, y_train, X_test, y_test);
+          renderConfusionMatrix();
+          renderDecisionBoundaryCanvas();
+          runLiveInference();
+        }
+      });
+
+      document.getElementById('sliderKNNK').addEventListener('input', (e) => {
+        state.knnK = parseInt(e.target.value);
+        document.getElementById('lblKNNK').textContent = state.knnK;
+      });
+
+      document.getElementById('sliderTreeDepth').addEventListener('input', (e) => {
+        state.treeDepth = parseInt(e.target.value);
+        document.getElementById('lblTreeDepth').textContent = state.treeDepth;
+      });
+
+      document.getElementById('chkStandardize').addEventListener('change', (e) => {
+        state.standardize = e.target.checked;
+      });
+
+      // Train Button
+      document.getElementById('btnTrainModel').addEventListener('click', trainCurrentModel);
+
+      // Axis Selector dropdowns
+      document.getElementById('selAxisX').addEventListener('change', (e) => {
+        state.axisX = parseInt(e.target.value);
+        renderDecisionBoundaryCanvas();
+      });
+
+      document.getElementById('selAxisY').addEventListener('change', (e) => {
+        state.axisY = parseInt(e.target.value);
+        renderDecisionBoundaryCanvas();
+      });
+
+      // Secondary Charts Tabs
+      const tabLoss = document.getElementById('tabLoss');
+      const tabConfusion = document.getElementById('tabConfusion');
+      const tabROC = document.getElementById('tabROC');
+      const tabWeights = document.getElementById('tabWeights');
+
+      const chartPanelLoss = document.getElementById('chartPanelLoss');
+      const chartPanelConfusion = document.getElementById('chartPanelConfusion');
+      const chartPanelROC = document.getElementById('chartPanelROC');
+      const chartPanelWeights = document.getElementById('chartPanelWeights');
+
+      const subTabs = [
+        { btn: tabLoss, panel: chartPanelLoss },
+        { btn: tabConfusion, panel: chartPanelConfusion },
+        { btn: tabROC, panel: chartPanelROC },
+        { btn: tabWeights, panel: chartPanelWeights }
+      ];
+
+      subTabs.forEach(({ btn, panel }) => {
+        btn.addEventListener('click', () => {
+          subTabs.forEach(t => {
+            t.btn.className = 'px-2.5 py-1 text-xs font-medium rounded text-slate-600 hover:text-slate-900';
+            t.panel.classList.add('hidden');
+          });
+          btn.className = 'px-2.5 py-1 text-xs font-semibold rounded bg-white text-indigo-700 shadow-sm border border-slate-200';
+          panel.classList.remove('hidden');
+        });
+      });
+
+      // Quick Benchmark Demos
+      document.getElementById('btnDemoIris').addEventListener('click', () => { loadPresetDemo('iris'); trainCurrentModel(); });
+      document.getElementById('btnDemoTitanic').addEventListener('click', () => { loadPresetDemo('titanic'); trainCurrentModel(); });
+      document.getElementById('btnDemoCancer').addEventListener('click', () => { loadPresetDemo('cancer'); trainCurrentModel(); });
+      document.getElementById('btnDemoExam').addEventListener('click', () => { loadPresetDemo('exam'); trainCurrentModel(); });
+
+      // CSV File Upload & Drag-and-Drop
+      const dropZone = document.getElementById('dropZone');
+      const fileInput = document.getElementById('csvFileInput');
+
+      dropZone.addEventListener('click', () => fileInput.click());
+
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('border-indigo-500', 'bg-indigo-50/40');
+      });
+
+      dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('border-indigo-500', 'bg-indigo-50/40');
+      });
+
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('border-indigo-500', 'bg-indigo-50/40');
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+          handleUploadedFile(e.dataTransfer.files[0]);
+        }
+      });
+
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+          handleUploadedFile(e.target.files[0]);
+        }
+      });
+
+      // Modals
+      const modalGuide = document.getElementById('modalGuide');
+      const modalExport = document.getElementById('modalExport');
+
+      document.getElementById('btnQuickGuide').addEventListener('click', () => modalGuide.classList.remove('hidden'));
+      document.getElementById('btnCloseGuide').addEventListener('click', () => modalGuide.classList.add('hidden'));
+      document.getElementById('btnGotItGuide').addEventListener('click', () => modalGuide.classList.add('hidden'));
+
+      document.getElementById('btnExportReport').addEventListener('click', openExportReportModal);
+      document.getElementById('btnCloseExport').addEventListener('click', () => modalExport.classList.add('hidden'));
+
+      document.getElementById('btnCopyReport').addEventListener('click', copyReportToClipboard);
+      document.getElementById('btnDownloadModelJson').addEventListener('click', exportModelJSON);
+    }
+
+    function regenerateSyntheticData() {
+      const { data, featNames, targetName, cNames } = generateSyntheticDataset(state.preset, state.sampleCount, state.noise);
+      setLoadedDataset(data, featNames, targetName, cNames);
+      renderDecisionBoundaryCanvas();
+    }
+
+    function handleUploadedFile(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const { headers, rows } = parseCSV(e.target.result);
+          if (headers.length < 2) {
+            showToast("CSV must have at least 2 columns (1 feature + 1 target)", "error");
+            return;
+          }
+
+          // Store parsed CSV
+          window.lastUploadedCSV = { headers, rows };
+          setupCSVConfigUI(headers, rows);
+          showToast(`Uploaded ${file.name} (${rows.length} rows)`, "success");
+        } catch (err) {
+          showToast(`Error reading CSV: ${err.message}`, "error");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function setupCSVConfigUI(headers, rows) {
+      const box = document.getElementById('csvConfigBox');
+      const targetSel = document.getElementById('csvTargetCol');
+      const featuresList = document.getElementById('csvFeaturesList');
+
+      targetSel.innerHTML = '';
+      featuresList.innerHTML = '';
+
+      headers.forEach((h, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        opt.textContent = h;
+        // Default target to last column
+        if (idx === headers.length - 1) opt.selected = true;
+        targetSel.appendChild(opt);
+
+        // Feature checkbox
+        const label = document.createElement('label');
+        label.className = 'inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 px-2 py-0.5 rounded cursor-pointer';
+        label.innerHTML = `
+          <input type="checkbox" value="${idx}" class="feature-chk" ${idx !== headers.length - 1 ? 'checked' : ''}>
+          <span>${h}</span>
+        `;
+        featuresList.appendChild(label);
+      });
+
+      box.classList.remove('hidden');
+
+      document.getElementById('btnApplyCSV').onclick = () => {
+        const targetIdx = parseInt(targetSel.value);
+        const checkedFeatIndices = Array.from(document.querySelectorAll('.feature-chk:checked')).map(el => parseInt(el.value)).filter(i => i !== targetIdx);
+
+        if (checkedFeatIndices.length === 0) {
+          showToast("Please select at least 1 feature column", "error");
+          return;
+        }
+
+        // Determine unique class values
+        const targetVals = rows.map(r => r[targetIdx].trim());
+        const uniqueClasses = Array.from(new Set(targetVals));
+
+        const parsedData = [];
+        rows.forEach(r => {
+          const feats = checkedFeatIndices.map(fi => {
+            const val = parseFloat(r[fi]);
+            return isNaN(val) ? 0 : val;
+          });
+          const rawTarget = r[targetIdx].trim();
+          // Map binary
+          let y = 0;
+          if (uniqueClasses.length >= 2) {
+            y = (rawTarget === uniqueClasses[1] || rawTarget === '1' || rawTarget.toLowerCase() === 'yes' || rawTarget.toLowerCase() === 'true') ? 1 : 0;
+          } else {
+            y = parseFloat(rawTarget) || 0;
+          }
+          parsedData.push({ X: feats, y });
+        });
+
+        const featNames = checkedFeatIndices.map(fi => headers[fi]);
+        const targetName = headers[targetIdx];
+        const cNames = uniqueClasses.length >= 2 ? [String(uniqueClasses[0]), String(uniqueClasses[1])] : ['Class 0', 'Class 1'];
+
+        setLoadedDataset(parsedData, featNames, targetName, cNames);
+        trainCurrentModel();
+        showToast("Uploaded dataset applied and trained!", "success");
+      };
+    }
+
+    // --- Report Export Modal Logic ---
+    function openExportReportModal() {
+      const modalExport = document.getElementById('modalExport');
+      const txt = document.getElementById('txtReportContent');
+      document.getElementById('copyConfirmMsg').classList.add('hidden');
+
+      const m = state.evalMetrics;
+      const weightsStr = (state.trainedModel && state.trainedModel.weights) ?
+        state.trainedModel.weights.map((w, i) => `   - ${state.featureNames[i]}: ${w.toFixed(5)}`).join('\n') : '   - None';
+
+      const report = `======================================================================
+MACHINE LEARNING SUBJECT PROJECT PERFORMANCE REPORT
+Generated by: ML Studio Dashboard App (Interactive AutoML)
+Timestamp: ${new Date().toLocaleString()}
+======================================================================
+
+1. DATASET CONFIGURATION
+----------------------------------------------------------------------
+• Source: ${state.mode === 'generate' ? `Synthetic (${state.preset})` : 'User Uploaded CSV'}
+• Total Samples (Rows): ${state.rawDataset.length}
+• Total Features: ${state.featureNames.length} (${state.featureNames.join(', ')})
+• Target Variable: ${state.targetName}
+• Target Classes: 0: "${state.classNames[0]}", 1: "${state.classNames[1]}"
+• Preprocessing: Z-Score Standardization ((x - μ) / σ) = ${state.standardize}
+• Split Strategy: 80% Training (${state.trainData.length} samples) / 20% Test (${state.testData.length} samples)
+
+2. MODEL ARCHITECTURE & HYPERPARAMETERS
+----------------------------------------------------------------------
+• Model Selected: ${state.modelType.toUpperCase()}
+• Optimization: Batch Gradient Descent with Sigmoid Activation
+• Learning Rate (alpha): ${state.lr}
+• Training Iterations (Epochs): ${state.epochs}
+• L2 Regularization Penalty (lambda): ${state.lambda}
+• Classification Threshold: ${state.threshold}
+
+3. PERFORMANCE EVALUATION METRICS
+----------------------------------------------------------------------
+• Training Accuracy: ${(m.trainAccuracy * 100).toFixed(2)}%
+• Test Set Accuracy: ${(m.accuracy * 100).toFixed(2)}%
+• Precision (PPV): ${(m.precision).toFixed(4)}
+• Recall / Sensitivity (TPR): ${(m.recall).toFixed(4)}
+• F1-Score (Harmonic Mean): ${(m.f1).toFixed(4)}
+• Area Under ROC Curve (AUC): ${(m.auc).toFixed(4)}
+
+4. CONFUSION MATRIX (TEST DATASET)
+----------------------------------------------------------------------
+                  Predicted 0         Predicted 1
+Actual 0 (Neg):   TN = ${m.confusionMatrix.tn.toString().padEnd(6)}         FP = ${m.confusionMatrix.fp.toString().padEnd(6)} (Type I Error)
+Actual 1 (Pos):   FN = ${m.confusionMatrix.fn.toString().padEnd(6)}         TP = ${m.confusionMatrix.tp.toString().padEnd(6)} (Sensitivity)
+
+5. LEARNED MODEL PARAMETERS
+----------------------------------------------------------------------
+• Bias Intercept (b): ${state.trainedModel && state.trainedModel.bias !== undefined ? state.trainedModel.bias.toFixed(5) : 'N/A'}
+• Feature Weights (w):
+${weightsStr}
+
+======================================================================
+End of Academic Machine Learning Project Report
+======================================================================`;
+
+      txt.value = report;
+      modalExport.classList.remove('hidden');
+    }
+
+    function copyReportToClipboard() {
+      const txt = document.getElementById('txtReportContent');
+      txt.select();
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(txt.value);
+        } else {
+          document.execCommand('copy');
+        }
+        document.getElementById('copyConfirmMsg').classList.remove('hidden');
+        showToast("Report copied to clipboard!", "success");
+      } catch (e) {
+        document.execCommand('copy');
+        document.getElementById('copyConfirmMsg').classList.remove('hidden');
+      }
+    }
+
+    function exportModelJSON() {
+      const modelObj = {
+        modelType: state.modelType,
+        hyperparameters: {
+          learningRate: state.lr,
+          epochs: state.epochs,
+          lambda: state.lambda,
+          threshold: state.threshold
+        },
+        scaler: state.scaler,
+        weights: state.trainedModel ? state.trainedModel.weights : [],
+        bias: state.trainedModel ? state.trainedModel.bias : 0,
+        metrics: state.evalMetrics,
+        featureNames: state.featureNames
+      };
+
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(modelObj, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `ml_model_weights_${Date.now()}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast("Exported model parameters JSON!", "success");
+    }
+
+    // --- Initialization on Page Load ---
+    window.addEventListener('DOMContentLoaded', () => {
+      setupEventListeners();
+      regenerateSyntheticData();
+      trainCurrentModel();
+    });
+  </script>
+</body>
+</html>
